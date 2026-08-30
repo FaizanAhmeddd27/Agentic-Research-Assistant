@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-brand: #004953;
+  --color-brand-light: #006b73;
+  --color-brand-dark: #003539;
+  --color-cream: #F9F7F2;
+  --color-cream-dark: #F2EFE8;
+  --color-brown: #3E2723;
+  --color-brown-light: #5D4037;
+  --color-brown-lighter: #8D6E63;
+  --font-serif: "Playfair Display", serif;
+  --font-sans: "Inter Tight", sans-serif;
+}
+
+body {
+  background: var(--color-cream);
+  color: var(--color-brown-light);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-serif);
+  color: var(--color-brown);
+}
+
+::selection {
+  background: var(--color-brand);
+  color: var(--color-cream);
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--color-brand) !important;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--color-cream); }
+::-webkit-scrollbar-thumb { background: var(--color-brown-lighter); border-radius: 3px; }
+
+/* Markdown report styling */
+.report-content h1 { font-size: 1.875rem; font-weight: 700; margin-bottom: 1rem; color: var(--color-brown); font-family: var(--font-serif); }
+.report-content h2 { font-size: 1.5rem; font-weight: 600; margin-top: 2rem; margin-bottom: 0.75rem; color: var(--color-brown); font-family: var(--font-serif); }
+.report-content h3 { font-size: 1.25rem; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.5rem; color: var(--color-brown); font-family: var(--font-serif); }
+.report-content p { margin-bottom: 1rem; line-height: 1.75; }
+.report-content ul, .report-content ol { margin-bottom: 1rem; padding-left: 1.5rem; }
+.report-content li { margin-bottom: 0.25rem; }
+.report-content ul { list-style-type: disc; }
+.report-content ol { list-style-type: decimal; }
+.report-content code { background: rgba(0,0,0,0.05); padding: 0.125rem 0.375rem; border-radius: 4px; font-size: 0.875rem; }
+.report-content pre { background: var(--color-brown); color: var(--color-cream); padding: 1rem; border-radius: 12px; overflow-x: auto; margin-bottom: 1rem; }
+.report-content pre code { background: transparent; color: inherit; padding: 0; }
+.report-content blockquote { border-left: 3px solid var(--color-brand); padding-left: 1rem; margin-bottom: 1rem; color: var(--color-brown-lighter); font-style: italic; }
+.report-content a { color: var(--color-brand); text-decoration: underline; }
+.report-content table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
+.report-content th, .report-content td { border: 1px solid rgba(0,0,0,0.1); padding: 0.5rem 0.75rem; text-align: left; }
+.report-content th { background: var(--color-cream-dark); font-weight: 600; }

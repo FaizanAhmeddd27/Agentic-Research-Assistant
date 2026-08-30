@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+.env
+.env.local
+node_modules/
+.next/
+.vercel/
+dist/
+build/
+docs/
+*.log
