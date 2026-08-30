@@ -7,7 +7,28 @@ from app.rag.retrieve import retrieve as rag_retrieve
 from app.agent.state import AgentState, Source
 
 
+def _web_search_enabled(user_id: str) -> bool:
+    """Return whether web search is enabled for the user (default True)."""
+    try:
+        from app.db.db import get_db_conn
+
+        conn = get_db_conn()
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT web_search_enabled FROM user_settings WHERE user_id = %s",
+                (user_id,),
+            )
+            row = cur.fetchone()
+            return row[0] if row else True
+    except Exception:
+        return True
+
+
 def _should_skip_web_search(state: AgentState) -> bool:
+    if not _web_search_enabled(state["user_id"]):
+        return True
+
+    review_decision = state.get("review_decision", {})
     review_decision = state.get("review_decision", {})
     if review_decision.get("decision") != "reject":
         return False
