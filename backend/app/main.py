@@ -19,15 +19,7 @@ apply_langsmith_env()
 
 app = FastAPI(title="Agentic Research Assistant", version="0.1.0")
 
-app.include_router(auth_router)
-app.include_router(threads_router)
-app.include_router(documents_router)
-app.include_router(settings_router)
-app.include_router(reports_router)
-app.include_router(memory_router)
-app.include_router(stream_router)
-
-# CORS: allow the configured production origins, or fall back to localhost dev.
+# CORS: allow configured origins, Vercel subdomains, and local development
 from app.config import settings as app_settings
 
 _raw_origins = [
@@ -35,7 +27,8 @@ _raw_origins = [
     for o in app_settings.CORS_ORIGINS.split(",")
     if o.strip()
 ]
-_cors_origins = _raw_origins or [
+_default_origins = [
+    "https://derve.vercel.app",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://[::1]:3000",
@@ -43,14 +36,24 @@ _cors_origins = _raw_origins or [
     "http://127.0.0.1:3001",
     "http://[::1]:3001",
 ]
+_cors_origins = list(dict.fromkeys(_raw_origins + _default_origins))
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
+    allow_origin_regex=r"^https:\/\/.*\.vercel\.app$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(auth_router)
+app.include_router(threads_router)
+app.include_router(documents_router)
+app.include_router(settings_router)
+app.include_router(reports_router)
+app.include_router(memory_router)
+app.include_router(stream_router)
 
 _agent_graph = None
 
@@ -65,12 +68,18 @@ def get_graph():
 
 @app.on_event("startup")
 async def startup():
-    from app.db.db import init_db
-    from app.db.checkpointer import get_checkpointer
-    from app.db.store import get_store
-    init_db()
-    get_checkpointer()
-    get_store()
+    import logging
+    logger = logging.getLogger("uvicorn.error")
+    try:
+        from app.db.db import init_db
+        from app.db.checkpointer import get_checkpointer
+        from app.db.store import get_store
+        init_db()
+        get_checkpointer()
+        get_store()
+        logger.info("Startup complete: DB, checkpointer, and store initialized successfully.")
+    except Exception as exc:
+        logger.error(f"Startup initialization warning/error: {exc}", exc_info=True)
 
 
 @app.get("/health")
