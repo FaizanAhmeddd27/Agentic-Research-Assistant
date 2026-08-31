@@ -41,7 +41,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     router.push("/login");
   }
 
-  if (!user) return <div className="flex min-h-screen items-center justify-center bg-cream"><div className="text-brown-lighter">Loading...</div></div>;
+  if (!user)
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-cream">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-brand flex items-center justify-center shadow-lg">
+            <svg className="w-5 h-5 text-cream animate-pulse" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <div className="text-brown-lighter text-sm">Loading workspace…</div>
+        </div>
+      </div>
+    );
 
   return (
     <div className="flex min-h-screen bg-cream">
@@ -50,11 +62,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       {/* Sidebar */}
       <aside className={`fixed lg:sticky top-0 left-0 z-50 h-screen w-64 bg-brown flex flex-col transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
-        <div className="px-6 py-8 border-b border-white/10">
-          <Link href="/dashboard" className="font-serif text-2xl font-bold text-cream tracking-tight">DERVE</Link>
-          <p className="text-xs text-cream/50 mt-1">Agentic Research</p>
+        {/* Brand */}
+        <div className="px-6 pt-8 pb-6 border-b border-white/10">
+          <Link href="/dashboard" className="group flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-brand flex items-center justify-center shadow-lg ring-1 ring-white/15 group-hover:scale-105 transition-transform">
+              <svg className="w-5 h-5 text-cream" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <div>
+              <span className="font-serif text-xl font-bold text-cream tracking-tight leading-none">DERVE</span>
+              <p className="text-[10px] text-cream/45 mt-1 tracking-wide">Agentic Research</p>
+            </div>
+          </Link>
         </div>
-        <nav className="flex-1 px-3 py-6 space-y-1">
+
+        {/* Nav */}
+        <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
+          <p className="px-4 pb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-cream/35">Workspace</p>
           {NAV.map((item) => {
             const active = pathname === item.href || pathname.startsWith(item.href + "/");
             return (
@@ -62,21 +87,34 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 onClick={() => setSidebarOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
+                className={`relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
                   active
-                    ? "bg-brand text-cream"
+                    ? "bg-brand text-cream shadow-lg shadow-black/20"
                     : "text-cream/60 hover:text-cream hover:bg-white/5"
                 }`}
               >
-                <Icon d={item.icon} />
+                <span className={`transition-transform duration-200 ${active ? "scale-110" : "group-hover:scale-110"}`}>
+                  <Icon d={item.icon} />
+                </span>
                 {item.label}
+                {active && <span className="absolute right-3 w-1.5 h-1.5 rounded-full bg-cream/80 animate-pulse" />}
               </Link>
             );
           })}
         </nav>
-        <div className="px-3 pb-6 space-y-1">
-          <div className="px-4 py-3 text-xs text-cream/40 truncate">{user.email}</div>
-          <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-cream/60 hover:text-cream hover:bg-white/5 w-full transition-colors">
+
+        {/* User */}
+        <div className="px-3 pb-6 space-y-1 border-t border-white/10 pt-4">
+          <Link href="/settings" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors group">
+            <div className="w-9 h-9 rounded-full bg-brand/70 ring-1 ring-white/15 flex items-center justify-center text-cream font-serif text-sm font-bold shrink-0">
+              {(user.name || user.email || "D").charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-cream truncate">{user.name || "Member"}</p>
+              <p className="text-[11px] text-cream/40 truncate">{user.email}</p>
+            </div>
+          </Link>
+          <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-cream/60 hover:text-cream hover:bg-red-500/10 w-full transition-colors">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
             </svg>
@@ -89,14 +127,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="flex-1 flex flex-col min-w-0">
         {/* Mobile header */}
         <header className="sticky top-0 z-30 flex items-center gap-4 px-4 py-3 bg-cream/95 backdrop-blur border-b border-brown/5 lg:hidden">
-          <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-lg hover:bg-brown/5">
+          <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-lg hover:bg-brown/5 cursor-pointer" aria-label="Open menu">
             <svg className="w-5 h-5 text-brown" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
             </svg>
           </button>
-          <span className="font-serif text-lg font-bold text-brown">DERVE</span>
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-brand flex items-center justify-center">
+              <svg className="w-3.5 h-3.5 text-cream" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <span className="font-serif text-lg font-bold text-brown">DERVE</span>
+          </div>
         </header>
-        <main className="flex-1 p-6 lg:p-10">{children}</main>
+        <main className="flex-1 p-4 sm:p-6 lg:p-10">{children}</main>
       </div>
     </div>
   );

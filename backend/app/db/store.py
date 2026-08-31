@@ -17,11 +17,13 @@ def get_store() -> PostgresStore:
     """Return a singleton PostgresStore, creating it on first call."""
     global _store, _conn
     if _store is None:
+        # LangGraph's PostgresStore expects an autocommit connection (it manages
+        # its own transactions internally). Keeping autocommit off rolls back
+        # every write when the connection closes on shutdown -> memory loss.
         _conn = psycopg.connect(settings.DATABASE_URL)
-        _store = PostgresStore(_conn)
         _conn.autocommit = True
+        _store = PostgresStore(_conn)
         _store.setup()
-        _conn.autocommit = False
     return _store
 
 

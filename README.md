@@ -9,10 +9,13 @@
 ![Status](https://img.shields.io/badge/status-active%20prototype-blueviolet)
 ![Backend](https://img.shields.io/badge/backend-FastAPI-009688)
 ![Frontend](https://img.shields.io/badge/frontend-Next.js%2016-black)
-![Orchestration](https://img.shields.io/badge/orchestration-LangGraph-1c3d5a)
+![Orchestration](https://img.shields.io/badge/orchestration-LangGraph-FF2D20)
+![LLM](https://img.shields.io/badge/llm-LangChain-1c3c5c)
 ![Vector DB](https://img.shields.io/badge/vector%20db-Qdrant-dc244c)
 ![Database](https://img.shields.io/badge/database-Postgres-336791)
 ![UI](https://img.shields.io/badge/ui-React%2019%20%2B%20Tailwind-38bdf8)
+![Backend Deploy](https://img.shields.io/badge/backend%20deploy-Docker%20%2F%20Render-2496ED)
+![Frontend Deploy](https://img.shields.io/badge/frontend%20deploy-Vercel-000000)
 
 </div>
 
@@ -32,10 +35,11 @@
 10. [Environment Variables](#env)
 11. [Setup and Installation](#setup)
 12. [Running Tests](#tests)
-13. [Notes on Current Project Status](#status)
-14. [Typical User Flow](#userflow)
-15. [Future Enhancements](#future)
-16. [Summary](#summary)
+13. [Deployment](#deployment)
+14. [Notes on Current Project Status](#status)
+15. [Typical User Flow](#userflow)
+16. [Future Enhancements](#future)
+17. [Summary](#summary)
 
 ---
 
@@ -117,42 +121,57 @@ The application is designed to give a user a "research co-pilot" that:
 
 | Layer | Technology |
 |:---|:---|
-| Framework | Next.js 16 |
+| Framework | Next.js 16 (App Router) |
 | UI | React 19 |
-| Styling | Tailwind CSS |
+| Language | TypeScript |
+| Styling | Tailwind CSS v4 |
 | Markdown rendering | react-markdown + remark-gfm |
-| App routing | Next.js App Router |
+| Linting | ESLint |
 
 ### Backend
 
 | Layer | Technology |
 |:---|:---|
-| API | FastAPI |
-| Lang orchestration | LangGraph |
-| LLM integration | LangChain + Groq + Gemini |
-| Search | Tavily + DuckDuckGo |
-| Embeddings | fastembed + Hugging Face models |
-| Vector DB | Qdrant |
-| Relational DB | Postgres via psycopg |
-| Auth | custom bearer-token auth system |
+| API framework | FastAPI (Python 3.13) |
+| Agent orchestration | LangGraph (StateGraph, interrupts, checkpointer, store) |
+| LLM framework | LangChain (`langchain-groq`, `langchain-core`) |
+| LLM providers | Groq (primary), Gemini |
+| Embeddings | fastembed (ONNX) + Hugging Face models (`bge-small-en-v1.5`) |
+| Web search | Tavily + DuckDuckGo (`duckduckgo-search`) |
+| Vector DB | Qdrant Cloud |
+| Relational DB | Postgres via `psycopg` / asyncpg / SQLAlchemy |
+| Persistence | Postgres-backed LangGraph checkpointer + store (Neon) |
+| Auth | Custom bearer-token (HMAC-SHA256) auth, bcrypt password hashing |
+| Tracing / observability | LangSmith |
 | Runtime | Uvicorn |
 
 ### Data and infrastructure
 
 | Layer | Technology |
 |:---|:---|
-| Primary database | Neon / Postgres |
-| Vector store | Qdrant Cloud or self-hosted Qdrant |
-| Session / checkpointer storage | Postgres-backed LangGraph checkpointing |
-| Observability | LangSmith |
+| Primary database | Neon (managed Postgres) |
+| Vector store | Qdrant Cloud |
+| Session / checkpointer storage | Postgres-backed LangGraph checkpointing & memory store |
+| Observability | LangSmith (tracing + eval) |
+
+### Containerization & deployment
+
+| Layer | Technology |
+|:---|:---|
+| Backend container | **Docker** (multi-stage `python:3.13-slim`) |
+| Backend host | **Render** (web service, Docker runtime) |
+| Frontend host | **Vercel** (native Next.js build) |
+| Repo / CI trigger | GitHub (push-to-main auto-deploys) |
+| Config | `CORS_ORIGINS`, `NEXT_PUBLIC_BACKEND_URL` (see [Deployment](#deployment)) |
 
 ### Tooling
 
 | Tool | Purpose |
 |:---|:---|
+| Docker | containerize and deploy the backend |
 | Python virtual environment | backend dependency isolation |
 | npm | frontend dependency installation |
-| pytest | backend test execution |
+| pytest / smoke scripts | backend test execution (`test_*.py`) |
 | TypeScript | frontend type safety |
 | ESLint | linting |
 
@@ -204,7 +223,13 @@ Derve/
 │   │   ├── config.py
 │   │   ├── main.py
 │   │   └── __init__.py
+│   ├── eval/
+│   │   ├── dataset.py
+│   │   └── run_eval.py
+│   ├── Dockerfile
+│   ├── .dockerignore
 │   ├── requirements.txt
+│   ├── .env.example
 │   ├── test_agent.py
 │   ├── test_api.py
 │   ├── test_auth.py
@@ -229,14 +254,14 @@ Derve/
 │   │   ├── components/
 │   │   │   ├── AppLayout.tsx
 │   │   │   └── MarkdownRenderer.tsx
-│   │   ├── lib/
-│   │   │   └── api.ts
-│   │   └── proxy.ts
+│   │   └── lib/
+│   │       └── api.ts
 │   ├── package.json
 │   ├── next.config.ts
 │   ├── tsconfig.json
 │   ├── eslint.config.mjs
 │   ├── postcss.config.mjs
+│   ├── .env.example
 │   └── public/
 ├── docs/
 │   ├── ARCH.md
@@ -245,9 +270,10 @@ Derve/
 │   ├── PRD.md
 │   ├── SRS.md
 │   └── UI-UX.md
+├── DEPLOY.md
 ├── .gitignore
 ├── README.md
-└── .env.example (if present in your repo; otherwise create it)
+└── .env (backend — git-ignored)
 ```
 
 ---
@@ -373,29 +399,32 @@ This architecture allows the app to preserve threads and user state even when th
 <a name="env"></a>
 ## 10. Environment variables
 
-Create a backend `.env` file based on the project's actual runtime expectations.
-
-Example:
+Create a `backend/.env` file based on `backend/.env.example`:
 
 ```env
-DATABASE_URL=postgresql://... 
-QDRANT_URL=https://... 
-QDRANT_API_KEY=... 
-GROQ_API_KEY=... 
-GEMINI_API_KEY=... 
-TAVILY_API_KEY=... 
-LANGSMITH_API_KEY=... 
-LANGSMITH_PROJECT=Derve 
-AUTH_SECRET=... 
+DATABASE_URL=postgresql://...     # Neon pooled URL
+QDRANT_URL=https://...            # Qdrant Cloud
+QDRANT_API_KEY=...                # Qdrant key
+GROQ_API_KEY=...                  # Groq LLM key
+GEMINI_API_KEY=...                # Gemini LLM key (optional)
+TAVILY_API_KEY=...                # Tavily web search key
+LANGSMITH_API_KEY=...             # LangSmith tracing (optional)
+LANGSMITH_PROJECT=Derve
+LANGSMITH_TRACING=true
+LANGSMITH_ENDPOINT=https://api.smith.langchain.com
+AUTH_SECRET=...                   # long random string for token signing
+CORS_ORIGINS=                     # comma-separated frontend origins for prod
 ```
 
-Frontend runtime can use:
+The frontend uses a single public variable (see `frontend/.env.example`):
 
 ```env
 NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
 ```
 
-The backend config file reads values from `.env` via `pydantic-settings` in `backend/app/config.py`.
+The backend reads values from `.env` (or OS environment) via `pydantic-settings` in
+`backend/app/config.py`. In production these are set as environment variables on Render
+(and `NEXT_PUBLIC_BACKEND_URL` on Vercel) — see [Deployment](#deployment).
 
 ---
 
@@ -467,8 +496,33 @@ These tests exercise key flows including authentication, document upload, memory
 
 ---
 
+<a name="deployment"></a>
+## 13. Deployment
+
+The app is split into two independently deployed services:
+
+| Service | Stack | Host |
+|:---|:---|:---|
+| Backend | **Docker** container (FastAPI) | **Render** web service |
+| Frontend | Next.js static/SSR build | **Vercel** |
+
+Key production config:
+
+- The backend is containerized with a multi-stage **Dockerfile** (`backend/Dockerfile`)
+  that runs `uvicorn app.main:app` on Render's injected `$PORT` and preloads the
+  embedding model into the image.
+- **CORS** is controlled by the `CORS_ORIGINS` env var on the backend (set it to your
+  Vercel URL).
+- The frontend points at the live API via `NEXT_PUBLIC_BACKEND_URL` (Vercel env var).
+
+>> **Read the full, step-by-step guide in [`DEPLOY.md`](./DEPLOY.md).** It covers creating
+>> the Render web service from the Dockerfile, setting every environment variable, wiring
+>> CORS, importing the project on Vercel, and smoke-testing the live app.
+
+---
+
 <a name="status"></a>
-## 13. Notes on current project status
+## 14. Notes on current project status
 
 This project is an active research/portfolio application with working building blocks for:
 - authentication,
@@ -485,7 +539,7 @@ The project also includes design and product documents in the `docs/` folder, wh
 ---
 
 <a name="userflow"></a>
-## 14. Typical user flow
+## 15. Typical user flow
 
 1. Create account with email/password.
 2. Log in.
@@ -501,21 +555,21 @@ The project also includes design and product documents in the `docs/` folder, wh
 ---
 
 <a name="future"></a>
-## 15. Future enhancements
+## 16. Future enhancements
 
 Potential next steps for the project include:
 - [ ] better export formatting (Markdown/PDF export polish)
 - [ ] improved UX for the review/edit flow
 - [ ] richer memory summarization and retrieval
 - [ ] more robust error-handling and retries
-- [ ] better deployment automation
-- [ ] Dockerization for one-command startup
+- [x] Dockerization for the backend
+- [x] production deployment config (Render + Vercel) via `DEPLOY.md`
 - [ ] CI/CD and production security hardening
 
 ---
 
 <a name="summary"></a>
-## 16. Summary
+## 17. Summary
 
 Derve is a local-first, user-scoped, agentic research assistant built for grounded research. It combines a modern Next.js frontend with a Python FastAPI backend, LangGraph orchestration, Postgres persistence, Qdrant-based RAG, and external LLM/search services to create an end-to-end research workflow that feels closer to an autonomous research teammate than a simple chatbot.
 

@@ -4,6 +4,7 @@ from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from app.config import apply_langsmith_env
 from app.auth.routes import router as auth_router
 from app.auth.deps import get_current_user
 from app.api.threads import router as threads_router
@@ -12,6 +13,9 @@ from app.api.settings import router as settings_router
 from app.api.reports import router as reports_router
 from app.api.memory import router as memory_router
 from app.api.stream import router as stream_router
+
+# Wire LangSmith tracing into the process env before the graph runs.
+apply_langsmith_env()
 
 app = FastAPI(title="Agentic Research Assistant", version="0.1.0")
 
@@ -23,16 +27,25 @@ app.include_router(reports_router)
 app.include_router(memory_router)
 app.include_router(stream_router)
 
+# CORS: allow the configured production origins, or fall back to localhost dev.
+from app.config import settings as app_settings
+
+_cors_origins = [
+    o.strip()
+    for o in app_settings.CORS_ORIGINS.split(",")
+    if o.strip()
+] or [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://[::1]:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3001",
+    "http://[::1]:3001",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://[::1]:3000",
-        "http://localhost:3001",
-        "http://127.0.0.1:3001",
-        "http://[::1]:3001",
-    ],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

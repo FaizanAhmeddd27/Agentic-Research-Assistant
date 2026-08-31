@@ -10,12 +10,13 @@ _conn: psycopg.Connection | None = None
 def get_checkpointer() -> PostgresSaver:
     global _checkpointer, _conn
     if _checkpointer is None:
+        # LangGraph's PostgresSaver expects an autocommit connection (it manages
+        # its own transactions/commits internally). autocommit=False rolls back
+        # every checkpoint when the connection closes on shutdown -> threads lost.
         _conn = psycopg.connect(settings.DATABASE_URL)
-        _checkpointer = PostgresSaver(_conn)
-        # setup needs autocommit for DDL
         _conn.autocommit = True
+        _checkpointer = PostgresSaver(_conn)
         _checkpointer.setup()
-        _conn.autocommit = False
     return _checkpointer
 
 
