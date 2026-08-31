@@ -30,11 +30,12 @@ app.include_router(stream_router)
 # CORS: allow the configured production origins, or fall back to localhost dev.
 from app.config import settings as app_settings
 
-_cors_origins = [
-    o.strip()
+_raw_origins = [
+    o.strip().rstrip("/")
     for o in app_settings.CORS_ORIGINS.split(",")
     if o.strip()
-] or [
+]
+_cors_origins = _raw_origins or [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://[::1]:3000",
