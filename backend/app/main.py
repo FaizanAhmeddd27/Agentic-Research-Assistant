@@ -77,6 +77,31 @@ async def health_check():
     return {"status": "ok"}
 
 
+@app.get("/health/db")
+async def health_db():
+    """Schema/diagnostic: confirms env vars are present and Neon is reachable.
+    Useful when debugging 500s on auth routes after deployment."""
+    from app.config import settings
+    env_summary = {
+        key: ("set" if getattr(settings, key, "") else "MISSING")
+        for key in ["DATABASE_URL", "AUTH_SECRET", "QDRANT_URL", "QDRANT_API_KEY",
+                    "GROQ_API_KEY", "TAVILY_API_KEY"]
+    }
+    db_status = "unknown"
+    detail = ""
+    try:
+        from app.db.db import get_db_conn
+        conn = get_db_conn()
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1")
+            cur.fetchone()
+        db_status = "ok"
+    except Exception as exc:  # noqa: BLE001
+        db_status = "error"
+        detail = f"{type(exc).__name__}: {exc}"
+    return {"env": env_summary, "database": db_status, "detail": detail}
+
+
 class IngestRequest(BaseModel):
     text: str
     source: str = "api"
