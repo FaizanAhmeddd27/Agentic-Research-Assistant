@@ -12,8 +12,21 @@ _conn: psycopg.Connection | None = None
 
 
 def get_db_conn() -> psycopg.Connection:
-    """Return a singleton psycopg connection for app tables."""
+    """Return a live psycopg connection for app tables, auto-reconnecting if dropped."""
     global _conn
+    if _conn is not None:
+        try:
+            if _conn.closed:
+                _conn = None
+            else:
+                _conn.execute("SELECT 1")
+        except Exception:
+            try:
+                _conn.close()
+            except Exception:
+                pass
+            _conn = None
+
     if _conn is None:
         _conn = psycopg.connect(settings.DATABASE_URL)
         _conn.autocommit = True

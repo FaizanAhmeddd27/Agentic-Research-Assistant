@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from app.config import settings
-from app.agent.graph import agent_graph
+from app.agent.graph import get_agent_graph
 
 
 TEST_USER = "test-user-001"
@@ -42,7 +42,7 @@ def test_agent():
     }
 
     print("Running agent graph (with critique loop)...")
-    result = agent_graph.invoke(initial_state)
+    result = get_agent_graph().invoke(initial_state)
 
     print(f"\n--- Sub-questions ---")
     for i, sq in enumerate(result["sub_questions"], 1):
